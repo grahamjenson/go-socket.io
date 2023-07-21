@@ -3,6 +3,7 @@ package socketio
 import (
 	"log"
 
+	"github.com/googollee/go-socket.io/logger"
 	"github.com/googollee/go-socket.io/parser"
 )
 
@@ -34,17 +35,20 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 	handler, ok := c.handlers.Get(header.Namespace)
 	if !ok {
 		_ = c.decoder.DiscardLast()
+		logger.Log.Info("missing handler for namespace", "namespace", header.Namespace)
 		return nil
 	}
 
 	args, err := c.decoder.DecodeArgs(handler.getEventTypes(event))
 	if err != nil {
+		logger.Log.Info("missing decoder for event type", "namespace", header.Namespace, "event", event)
 		c.onError(header.Namespace, err)
 		return errDecodeArgs
 	}
 
 	ret, err := handler.dispatchEvent(conn, event, args...)
 	if err != nil {
+		logger.Log.Info("Error for event type", "namespace", header.Namespace, "event", event)
 		c.onError(header.Namespace, err)
 		return errHandleDispatch
 	}
