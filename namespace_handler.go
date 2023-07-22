@@ -95,7 +95,6 @@ func (nh *namespaceHandler) dispatchEvent(conn Conn, event string, args ...refle
 	nh.eventsLock.RLock()
 	namespaceHandler := nh.events[event]
 	nh.eventsLock.RUnlock()
-
 	if namespaceHandler == nil {
 		return nil, nil
 	}

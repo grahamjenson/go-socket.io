@@ -35,20 +35,20 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 	handler, ok := c.handlers.Get(header.Namespace)
 	if !ok {
 		_ = c.decoder.DiscardLast()
-		logger.Log.Info("missing handler for namespace", "namespace", header.Namespace)
+		logger.Info("missing handler for namespace", "namespace", header.Namespace)
 		return nil
 	}
 
 	args, err := c.decoder.DecodeArgs(handler.getEventTypes(event))
 	if err != nil {
-		logger.Log.Info("missing decoder for event type", "namespace", header.Namespace, "event", event)
+		logger.Info("missing decoder for event type", "namespace", header.Namespace, "event", event)
 		c.onError(header.Namespace, err)
 		return errDecodeArgs
 	}
 
 	ret, err := handler.dispatchEvent(conn, event, args...)
 	if err != nil {
-		logger.Log.Info("Error for event type", "namespace", header.Namespace, "event", event)
+		logger.Info("Error for event type", "namespace", header.Namespace, "event", event)
 		c.onError(header.Namespace, err)
 		return errHandleDispatch
 	}
@@ -56,6 +56,8 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 	if len(ret) > 0 {
 		header.Type = parser.Ack
 		c.write(header, ret...)
+	} else {
+		logger.Info("missing event handler for namespace", "namespace", header.Namespace, "event", event)
 	}
 
 	return nil
@@ -63,12 +65,14 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 
 func connectPacketHandler(c *conn, header parser.Header) error {
 	if err := c.decoder.DiscardLast(); err != nil {
+		logger.Info("connectPacketHandler DiscardLast", err, "namespace", header.Namespace)
 		c.onError(header.Namespace, err)
 		return nil
 	}
 
 	handler, ok := c.handlers.Get(header.Namespace)
 	if !ok {
+		logger.Info("connectPacketHandler get namespace handler", "namespace", header.Namespace)
 		c.onError(header.Namespace, errFailedConnectNamespace)
 		return errFailedConnectNamespace
 	}
@@ -82,6 +86,7 @@ func connectPacketHandler(c *conn, header parser.Header) error {
 
 	_, err := handler.dispatch(conn, header)
 	if err != nil {
+		logger.Info("connectPacketHandler dispatch", "namespace", header.Namespace)
 		log.Println("dispatch connect packet", err)
 		c.onError(header.Namespace, err)
 		return errHandleDispatch
