@@ -93,19 +93,16 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, fmt.Sprintf("invalid sid value: %s", sid), http.StatusBadRequest)
 			return
 		}
-
 		transportConn, err := srvTransport.Accept(w, r)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("transport accept err: %s", err.Error()), http.StatusBadGateway)
 			return
 		}
-
 		reqSession, err = s.newSession(r.Context(), transportConn, reqTransport)
 		if err != nil {
 			http.Error(w, fmt.Sprintf("create new session err: %s", err.Error()), http.StatusBadRequest)
 			return
 		}
-
 		s.connInitor(r, reqSession)
 	}
 
@@ -128,7 +125,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-
 	reqSession.ServeHTTP(w, r)
 }
 
