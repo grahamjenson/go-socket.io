@@ -41,7 +41,7 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 
 	args, err := c.decoder.DecodeArgs(handler.getEventTypes(event))
 	if err != nil {
-		logger.Info("missing decoder for event type", "namespace", header.Namespace, "event", event)
+		logger.Info("Error decoding the message type", "namespace", header.Namespace, "event", event, "eventType", handler.getEventTypes(event), "err", err.Error())
 		c.onError(header.Namespace, err)
 		return errDecodeArgs
 	}

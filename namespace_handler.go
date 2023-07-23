@@ -54,11 +54,11 @@ func (nh *namespaceHandler) OnEvent(event string, f interface{}) {
 
 func (nh *namespaceHandler) getEventTypes(event string) []reflect.Type {
 	nh.eventsLock.RLock()
-	namespaceHandler := nh.events[event]
+	eventHandler := nh.events[event]
 	nh.eventsLock.RUnlock()
 
-	if namespaceHandler != nil {
-		return namespaceHandler.argTypes
+	if eventHandler != nil {
+		return eventHandler.argTypes
 	}
 
 	return nil
