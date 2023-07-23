@@ -86,7 +86,7 @@ func connectPacketHandler(c *conn, header parser.Header) error {
 
 	_, err := handler.dispatch(conn, header)
 	if err != nil {
-		logger.Info("connectPacketHandler dispatch", "namespace", header.Namespace)
+		logger.Info("connectPacketHandler  dispatch", "namespace", header.Namespace)
 		log.Println("dispatch connect packet", err)
 		c.onError(header.Namespace, err)
 		return errHandleDispatch
