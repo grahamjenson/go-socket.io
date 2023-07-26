@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/url"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -43,7 +44,8 @@ func NewClient(uri string, opts *engineio.Options) (*Client, error) {
 	})
 
 	client.OnConnect("/", func(s Conn) error {
-		fmt.Println("CONNECTED")
+		// Called on every successful Get Request
+		fmt.Println("OnConnect HANDLER")
 		return nil
 	})
 
@@ -52,8 +54,13 @@ func NewClient(uri string, opts *engineio.Options) (*Client, error) {
 	time.Sleep(1 * time.Second)
 
 	fmt.Println("EMIT")
-	ns := newNamespaceConn(newconn, "", nil)
-	go func() { ns.Emit("message", struct{}{}) }()
+	ns := newNamespaceConn(newconn, "/", nil)
+	ns.Emit("message", struct{}{},
+		func(reply interface{}) error {
+			fmt.Println("REEPPLLLYY", reply)
+			return nil
+		},
+	)
 
 	fmt.Println("DONE EMIT")
 	return client, nil
@@ -205,23 +212,22 @@ func (s *Client) clientRead(c *conn) {
 		if err := c.Close(); err != nil {
 			logger.Error("close connect:", err)
 		}
-		fmt.Println("Server Read Stopped")
+		fmt.Println("Client Read Stopped")
 	}()
 
-	fmt.Println("Server Read Here and ready")
+	fmt.Println("Client Read Here and ready")
 	var event string
 
 	for {
-		fmt.Println("Server Read loop")
+		fmt.Println("Client Read loop")
 		var header parser.Header
 
 		if err := c.decoder.DecodeHeader(&header, &event); err != nil {
 			c.onError(rootNamespace, err)
-			fmt.Println("aaaa")
+			fmt.Println("aaaa", rootNamespace, err)
 			return
 		}
 
-		fmt.Println("aaaaaaaaaa")
 		if header.Namespace == aliasRootNamespace {
 			header.Namespace = rootNamespace
 		}
@@ -229,10 +235,11 @@ func (s *Client) clientRead(c *conn) {
 		var err error
 		switch header.Type {
 		case parser.Ack:
-			fmt.Println("Ack")
+			fmt.Println("Acky", event)
 			err = clientAckPacketHandler(c, header)
 		case parser.Connect:
-			fmt.Println("Connect")
+			fmt.Println("CONNECT PACKET RECEIVED", header)
+
 			err = clientConnectPacketHandler(c, header)
 		case parser.Disconnect:
 			fmt.Println("Disconnect")
@@ -243,7 +250,7 @@ func (s *Client) clientRead(c *conn) {
 		}
 
 		if err != nil {
-			logger.Error("serve read:", err)
+			logger.Error("client read:", err)
 			fmt.Println("dddd")
 			return
 		}
@@ -294,6 +301,14 @@ func (c *conn) connectClient() error {
 		nc.SetContext(c.Conn.Context())
 	})
 
+	header := parser.Header{
+		Type: parser.Connect,
+	}
+
+	if err := c.encoder.Encode(header); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -304,6 +319,11 @@ func clientAckPacketHandler(c *conn, header parser.Header) error {
 		return nil
 	}
 
+	var x interface{}
+	x = "asd"
+	args, err := c.decoder.DecodeArgs([]reflect.Type{reflect.TypeOf(x)})
+
+	fmt.Println("THISISCRAZY", args, err)
 	conn.dispatch(header)
 
 	return nil
