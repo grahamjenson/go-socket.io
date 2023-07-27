@@ -6,7 +6,6 @@ import (
 	"log"
 	"net/url"
 	"path"
-	"reflect"
 	"strings"
 	"time"
 
@@ -54,7 +53,11 @@ func NewClient(uri string, opts *engineio.Options) (*Client, error) {
 	time.Sleep(1 * time.Second)
 
 	fmt.Println("EMIT")
-	ns := newNamespaceConn(newconn, "/", nil)
+
+	ns, ok := newconn.namespaces.Get("")
+	if !ok {
+		fmt.Println("OH NO")
+	}
 	ns.Emit("message", struct{}{},
 		func(reply interface{}) error {
 			fmt.Println("REEPPLLLYY", reply)
@@ -313,18 +316,43 @@ func (c *conn) connectClient() error {
 }
 
 func clientAckPacketHandler(c *conn, header parser.Header) error {
-	conn, ok := c.namespaces.Get(header.Namespace)
+	nc, ok := c.namespaces.Get(header.Namespace)
 	if !ok {
 		_ = c.decoder.DiscardLast()
 		return nil
 	}
 
-	var x interface{}
-	x = "asd"
-	args, err := c.decoder.DecodeArgs([]reflect.Type{reflect.TypeOf(x)})
+	rawFunc, ok := nc.ack.Load(header.ID)
+	if !ok {
+		// No function lodged for this ack, all good return
+		return nil
+	}
 
-	fmt.Println("THISISCRAZY", args, err)
-	conn.dispatch(header)
+	handler, ok := rawFunc.(*funcHandler)
+	if !ok {
+		logger.Info("Incorrect Ack functino type")
+		nc.conn.onError(nc.namespace, fmt.Errorf("incorrect function stored for header %d", header.ID))
+		nc.ack.Delete(header.ID)
+		return nil
+	}
+	// Delete the current header
+	nc.ack.Delete(header.ID)
+
+	// Very similar to the event handler now
+	args, err := c.decoder.DecodeArgs(handler.argTypes)
+	if err != nil {
+		logger.Info("Error decoding the ACK message type", "namespace", header.Namespace, "eventType", handler.argTypes, "err", err.Error())
+		c.onError(header.Namespace, err)
+		return errDecodeArgs
+	}
+
+	// Return value is ignored
+	_, err = handler.Call(args)
+	if err != nil {
+		logger.Info("Error for event type", "namespace", header.Namespace)
+		c.onError(header.Namespace, err)
+		return errHandleDispatch
+	}
 
 	return nil
 }

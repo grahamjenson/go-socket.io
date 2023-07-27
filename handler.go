@@ -20,7 +20,7 @@ func (h *funcHandler) Call(args []reflect.Value) (ret []reflect.Value, err error
 			var ok bool
 			err, ok = r.(error)
 			if !ok {
-				err = fmt.Errorf("event call error: %s", r)
+				err = fmt.Errorf("event call error: %s, args %v", r, args)
 			}
 		}
 	}()
