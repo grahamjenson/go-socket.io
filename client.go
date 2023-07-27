@@ -2,6 +2,7 @@ package socketio
 
 import (
 	"errors"
+	"fmt"
 	"net/url"
 	"path"
 	"strings"
@@ -47,6 +48,8 @@ func NewClient(uri string, opts *engineio.Options) (*Client, error) {
 		opts:      opts,
 	}
 
+	fmt.Println(client)
+
 	return client, nil
 }
 
@@ -85,9 +88,14 @@ func (s *Client) Close() error {
 }
 
 func (s *Client) Emit(event string, args ...interface{}) {
-	ns, ok := s.conn.namespaces.Get(s.namespace)
+	nsp := s.namespace
+	if nsp == aliasRootNamespace {
+		nsp = rootNamespace
+	}
+
+	ns, ok := s.conn.namespaces.Get(nsp)
 	if !ok {
-		logger.Info("Emit cannot emit withough connection")
+		logger.Info("Connection Namespace not initialized")
 		return
 	}
 	ns.Emit(event, args...)
@@ -222,7 +230,7 @@ func (s *Client) clientRead(c *conn) {
 		case parser.Disconnect:
 			err = clientDisconnectPacketHandler(c, header)
 		case parser.Event:
-			err = clientEventPacketHandler(c, event, header)
+			err = eventPacketHandler(c, event, header)
 		}
 
 		if err != nil {

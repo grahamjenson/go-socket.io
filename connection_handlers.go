@@ -50,10 +50,6 @@ func ackPacketHandler(c *conn, header parser.Header) error {
 	return nil
 }
 
-// ////////////////////
-// Server
-// ////////////////////
-
 func eventPacketHandler(c *conn, event string, header parser.Header) error {
 	conn, ok := c.namespaces.Get(header.Namespace)
 	if !ok {
@@ -86,7 +82,7 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 		header.Type = parser.Ack
 		c.write(header, ret...)
 	} else {
-		logger.Info("server missing event handler for namespace", "namespace", header.Namespace, "event", event)
+		logger.Info("Handle Event: No response returned", "namespace", header.Namespace, "event", event)
 	}
 
 	return nil
@@ -163,44 +159,6 @@ func disconnectPacketHandler(c *conn, header parser.Header) error {
 // ////////////////////
 // Client
 // ////////////////////
-
-func clientEventPacketHandler(c *conn, event string, header parser.Header) error {
-	conn, ok := c.namespaces.Get(header.Namespace)
-	if !ok {
-		_ = c.decoder.DiscardLast()
-		return nil
-	}
-
-	handler, ok := c.handlers.Get(header.Namespace)
-	if !ok {
-		_ = c.decoder.DiscardLast()
-		logger.Info("missing handler for namespace", "namespace", header.Namespace)
-		return nil
-	}
-
-	args, err := c.decoder.DecodeArgs(handler.getEventTypes(event))
-	if err != nil {
-		logger.Info("Error decoding the message type", "namespace", header.Namespace, "event", event, "eventType", handler.getEventTypes(event), "err", err.Error())
-		c.onError(header.Namespace, err)
-		return errDecodeArgs
-	}
-
-	ret, err := handler.dispatchEvent(conn, event, args...)
-	if err != nil {
-		logger.Info("Error for event type", "namespace", header.Namespace, "event", event)
-		c.onError(header.Namespace, err)
-		return errHandleDispatch
-	}
-
-	if len(ret) > 0 {
-		header.Type = parser.Ack
-		c.write(header, ret...)
-	} else {
-		logger.Info("client missing event handler for namespace", "namespace", header.Namespace, "event", event)
-	}
-
-	return nil
-}
 
 func clientConnectPacketHandler(c *conn, header parser.Header) error {
 	if err := c.decoder.DiscardLast(); err != nil {
