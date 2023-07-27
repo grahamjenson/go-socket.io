@@ -298,30 +298,28 @@ func (s *Server) serveRead(c *conn) {
 		var header parser.Header
 
 		if err := c.decoder.DecodeHeader(&header, &event); err != nil {
+			logger.Error("DecodeHeader Error in serveRead", err)
 			c.onError(rootNamespace, err)
 			return
 		}
-
 		if header.Namespace == aliasRootNamespace {
 			header.Namespace = rootNamespace
 		}
 
 		var err error
 		switch header.Type {
-		case parser.Ack, parser.Connect, parser.Disconnect:
-			handler, ok := readHandlerMapping[header.Type]
-			if !ok {
-				return
-			}
-
-			err = handler(c, header)
+		case parser.Ack:
+			err = ackPacketHandler(c, header)
+		case parser.Connect:
+			err = serverConnectPacketHandler(c, header)
+		case parser.Disconnect:
+			err = serverDisconnectPacketHandler(c, header)
 		case parser.Event:
-			err = eventPacketHandler(c, event, header)
+			err = serverEventPacketHandler(c, event, header)
 		}
 
 		if err != nil {
 			logger.Error("serve read:", err)
-
 			return
 		}
 	}
