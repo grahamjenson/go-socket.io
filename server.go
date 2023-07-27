@@ -307,7 +307,6 @@ func (s *Server) serveRead(c *conn) {
 			c.onError(rootNamespace, err)
 			return
 		}
-
 		if header.Namespace == aliasRootNamespace {
 			header.Namespace = rootNamespace
 		}
@@ -326,7 +325,6 @@ func (s *Server) serveRead(c *conn) {
 
 		if err != nil {
 			logger.Error("serve read:", err)
-
 			return
 		}
 	}
