@@ -81,8 +81,6 @@ func eventPacketHandler(c *conn, event string, header parser.Header) error {
 	if len(ret) > 0 || header.NeedAck {
 		header.Type = parser.Ack
 		c.write(header, ret...)
-	} else {
-		logger.Info("Handle Event: No response returned", "namespace", header.Namespace, "event", event)
 	}
 
 	return nil

@@ -1,6 +1,8 @@
 package payload
 
-import "bytes"
+import (
+	"bytes"
+)
 
 func writeBinaryLen(l int64, w *bytes.Buffer) error {
 	if l <= 0 {

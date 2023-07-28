@@ -57,4 +57,10 @@ var tests = []struct {
 		{frame.String, packet.PING, []byte("probe")},
 	},
 	},
+	// ↓ is 3 bytes BUT only one character. JavaScript `.length` function is characters. See https://socket.io/docs/v4/engine-io-protocol/#from-v3-to-v4
+	{false, []byte("6:412↓453:41↓"), []Packet{
+		{frame.String, packet.MESSAGE, []byte("12↓45")},
+		{frame.String, packet.MESSAGE, []byte("1↓")},
+	},
+	},
 }
